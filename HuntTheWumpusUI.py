@@ -221,7 +221,18 @@ class Ui(QtWidgets.QMainWindow):
         self.hLayoutFrame.addWidget(self.paintWidget)
         self.frame.setLayout(self.hLayoutFrame)
         self.initBoard()
-        
+    def drawStuff(self):
+        self.paintWidget.setBoard(self.board)
+        self.paintWidget.setPlayerPos(self.playerx,self.playery)
+        self.paintWidget.setDead(self.isDead)
+        self.perceptLabel.setText(self.percept)
+        if self.showMemoryBox.isChecked():
+            self.paintWidget.memoryEnabled(True)
+            knownSpaces, pitOdds, wompusOdds = self.WumpusAgent.getMemory()
+            self.paintWidget.setMemory(knownSpaces, pitOdds, wompusOdds)
+        else:
+            self.paintWidget.memoryEnabled(False)
+        self.update()
     def initBoard(self):
         self.statusLabel.setText("")
         self.isDead = False
@@ -253,11 +264,7 @@ class Ui(QtWidgets.QMainWindow):
             self.percept = self.percept + 'G'
         if breezeCheck(self.playerx, self.playery, self.board):
             self.percept = self.percept + 'B'
-        self.paintWidget.setBoard(self.board)
-        self.paintWidget.setPlayerPos(self.playerx,self.playery)
-        self.paintWidget.setDead(self.isDead)
-        self.perceptLabel.setText(self.percept)
-        self.update()
+        self.drawStuff()
     def doStep(self):
         steps = self.stepsCombo.value()
         initialnum = self.nummoves
@@ -357,11 +364,7 @@ class Ui(QtWidgets.QMainWindow):
             #check if we timed out
             if self.nummoves == 4000000:
                 numtimeouts = numtimeouts + 1
-            self.paintWidget.setBoard(self.board)
-            self.paintWidget.setPlayerPos(self.playerx,self.playery)
-            self.paintWidget.setDead(self.isDead)
-            self.perceptLabel.setText(self.percept)
-            self.update()
+            self.drawStuff()
             
         #quick status print
         #print("Game number " + str(game) + " complete in " + str(self.nummoves) + " moves.")
@@ -381,14 +384,22 @@ class PaintWidget(QWidget):
                 if(self.board[y][x])=='g':
                     self.drawGold(x,y)
                 if(self.board[y][x])=='e':
+                    self.entryx = x
+                    self.entryy = y
                     self.drawEntry(x,y)
                 if(self.board[y][x])=='p':
                     self.drawPit(x,y)
                 if(self.board[y][x])=='w':
                     self.drawWumpus(x,y)
         self.drawPlayer(self.playerX,self.playerY)
-
+        self.drawMemory()
         #print("paintevent")
+    def memoryEnabled(self,b):
+        self.doMem = b
+    def setMemory(self,knownSpaces, pitOdds, wompusOdds):
+        self.knownSpaces = knownSpaces
+        self.pitOdds = pitOdds
+        self.wompusOdds = wompusOdds
     def setDead(self,b):
         self.dead = b
     def setPlayerPos(self,y,x):
@@ -398,9 +409,45 @@ class PaintWidget(QWidget):
         self.board = board
     def getBoardDims(self):
         return len(self.board[0]),len(self.board)
-        
     def getDrawDims(self):
         return min(self.geometry().width(),self.geometry().height()),min(self.geometry().width(),self.geometry().height())
+    def drawWompArc(self,x,y,f):
+        qp = QPainter(self)
+        boardWid, boardLen = self.getBoardDims()
+        drawWid, drawLen = self.getDrawDims()
+        qp.setPen(QPen(QColor(200,0,200), 3))
+        qp.setBrush(QColor(200,0,200))
+        squareLen = (drawLen/boardLen)
+        squareWid = (drawWid/boardWid)
+        qp.drawArc(x*squareWid,y*squareLen,squareWid,squareLen,5760/2,5760*f)
+    def drawPitArc(self,x,y,f):
+        qp = QPainter(self)
+        boardWid, boardLen = self.getBoardDims()
+        drawWid, drawLen = self.getDrawDims()
+        qp.setPen(QPen(QColor(255,255,255), 3))
+        qp.setBrush(QColor(255,255,255))
+        squareLen = (drawLen/boardLen)
+        squareWid = (drawWid/boardWid)
+        #print(x*squareWid,y*squareLen,squareWid,squareLen,0,5760*f)
+        qp.drawArc(x*squareWid,y*squareLen,squareWid,squareLen,0,5760*f)
+    def xyToNum(self,st):
+        s = st.split(",")
+        return int(s[0]),int(s[1])
+    def drawMemory(self):
+        print(self.doMem)
+        if self.doMem:
+            print(self.entryx,self.entryy)
+            for key in self.wompusOdds:
+                i,j = self.xyToNum(key)
+                x = self.entryx + i
+                y = self.entryy - j
+                self.drawWompArc(x,y,self.wompusOdds[key])
+            for key in self.pitOdds:
+                print(key)
+                i,j = self.xyToNum(key)
+                x = self.entryx + i
+                y = self.entryy - j
+                self.drawPitArc(x,y,self.pitOdds[key])
     def drawSpace(self,x,y):
         #print("drawing space")
         qp = QPainter(self)
