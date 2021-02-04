@@ -300,19 +300,19 @@ class Ui(QtWidgets.QMainWindow):
             elif move == 'SN':
                 if self.remainingarrows > 0 and self.screamCheck(self.playerx, self.playery, self.board, 'n'):
                     self.percept = self.percept + 'C'
-                    self.remainingarrows = self.remainingarrows - 1
+                self.remainingarrows = self.remainingarrows - 1
             elif move == 'SS':
                 if self.remainingarrows > 0 and self.screamCheck(self.playerx, self.playery, self.board, 's'):
                     self.percept = self.percept + 'C'
-                    self.remainingarrows = self.remainingarrows - 1
+                self.remainingarrows = self.remainingarrows - 1
             elif move == 'SE':
                 if self.remainingarrows > 0 and self.screamCheck(self.playerx, self.playery, self.board, 'e'):
                     self.percept = self.percept + 'C'
-                    self.remainingarrows = self.remainingarrows - 1
+                self.remainingarrows = self.remainingarrows - 1
             elif move == 'SW':
                 if self.remainingarrows > 0 and self.screamCheck(self.playerx, self.playery, self.board, 'w'):
                     self.percept = self.percept + 'C'
-                    self.remainingarrows = self.remainingarrows - 1
+                self.remainingarrows = self.remainingarrows - 1
             #win check
             elif move == 'C':
                 if self.winCheck(self.playerx, self.playery, self.board):
