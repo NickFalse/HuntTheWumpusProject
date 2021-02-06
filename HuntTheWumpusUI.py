@@ -20,7 +20,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 import sys
 import time
-
+import MemoryMap
 #--------------------------
 #globals
 #--------------------------
@@ -216,11 +216,35 @@ class Ui(QtWidgets.QMainWindow):
         self.runStepsButton.clicked.connect(self.doStep)
         self.percept = ''
         self.hLayoutFrame = QHBoxLayout(self)
-        
+        self.remoteBox.clicked.connect(self.onRemoteCheck)
         self.paintWidget = PaintWidget(self)
         self.hLayoutFrame.addWidget(self.paintWidget)
         self.frame.setLayout(self.hLayoutFrame)
+        self.northButton.clicked.connect(self.onDevNorth)
+        self.southButton.clicked.connect(self.onDevSouth)
+        self.eastButton.clicked.connect(self.onDevEast)
+        self.westButton.clicked.connect(self.onDevWest)
+        self.onRemoteCheck()
         self.initBoard()
+    def onRemoteCheck(self):
+        if self.remoteBox.isChecked():
+            self.remoteGroup.setEnabled(True)
+            self.remoteGroup.setHidden(False)
+        else:
+            self.remoteGroup.setEnabled(False)
+            self.remoteGroup.setHidden(True)
+    def onDevNorth(self):
+        self.percept+="1"
+        self.doStep()
+    def onDevEast(self):
+        self.percept+="2"
+        self.doStep()
+    def onDevSouth(self):
+        self.percept+="3"
+        self.doStep()
+    def onDevWest(self):
+        self.percept+="4"
+        self.doStep()
     def drawStuff(self):
         self.paintWidget.setBoard(self.board)
         self.paintWidget.setPlayerPos(self.playerx,self.playery)
@@ -228,8 +252,8 @@ class Ui(QtWidgets.QMainWindow):
         self.perceptLabel.setText(self.percept)
         if self.showMemoryBox.isChecked():
             self.paintWidget.memoryEnabled(True)
-            knownSpaces, pitOdds, wompusOdds = self.WumpusAgent.getMemory()
-            self.paintWidget.setMemory(knownSpaces, pitOdds, wompusOdds)
+            memory = self.WumpusAgent.getMemory()
+            self.paintWidget.setMemory(memory)
         else:
             self.paintWidget.memoryEnabled(False)
         self.update()
@@ -239,7 +263,7 @@ class Ui(QtWidgets.QMainWindow):
         self.isWon = False
         self.remainingarrows = self.arrowNumSpin.value()
         self.percept = ""
-        print("arrow",self.remainingarrows)
+        #print("arrow",self.remainingarrows)
         self.nummoves = 0
         self.gotgold = False
         self.wumpilist = []
@@ -396,10 +420,8 @@ class PaintWidget(QWidget):
         #print("paintevent")
     def memoryEnabled(self,b):
         self.doMem = b
-    def setMemory(self,knownSpaces, pitOdds, wompusOdds):
-        self.knownSpaces = knownSpaces
-        self.pitOdds = pitOdds
-        self.wompusOdds = wompusOdds
+    def setMemory(self,memory):
+        self.memory=memory
     def setDead(self,b):
         self.dead = b
     def setPlayerPos(self,y,x):
@@ -433,21 +455,55 @@ class PaintWidget(QWidget):
     def xyToNum(self,st):
         s = st.split(",")
         return int(s[0]),int(s[1])
+    def drawWall(self,x,y):
+        qp = QPainter(self)
+        boardWid, boardLen = self.getBoardDims()
+        drawWid, drawLen = self.getDrawDims()
+        qp.setBrush(QColor(100,100,100))
+        squareLen = (drawLen/boardLen)
+        squareWid = (drawWid/boardWid)
+        qp.drawRect((x*squareWid)-5,(y*squareLen)-5,squareWid+10,squareLen+10)
+    def drawKnownPit(self,x,y):
+        qp = QPainter(self)
+        qp.setPen(QPen(QColor(240,240,240), 3))
+        qp.setBrush(QColor(240,240,240))
+        boardWid, boardLen = self.getBoardDims()
+        drawWid, drawLen = self.getDrawDims()
+        squareLen = (drawLen/boardLen)
+        squareWid = (drawWid/boardWid)
+        qp.drawLine(x*squareWid,y*squareLen,x*squareWid+squareWid,y*squareLen+squareLen)
+        qp.drawLine(x*squareWid,y*squareLen+squareLen,x*squareWid+squareWid,y*squareLen)
+    def drawVisited(self,x,y):
+        qp = QPainter(self)
+        boardWid, boardLen = self.getBoardDims()
+        drawWid, drawLen = self.getDrawDims()
+        qp.setBrush(QColor(255,255,0))
+        squareLen = (drawLen/boardLen)
+        squareWid = (drawWid/boardWid)
+        qp.drawRect((x*squareWid)+(.38*squareWid),(y*squareLen)+(.38*squareLen),.25*squareWid,.25*squareLen)
     def drawMemory(self):
-        print(self.doMem)
+        #print(self.doMem)
         if self.doMem:
-            print(self.entryx,self.entryy)
-            for key in self.wompusOdds:
-                i,j = self.xyToNum(key)
+            #print(self.entryx,self.entryy)
+            for t in self.memory.map:
+                tile:MemoryMap.Tile = self.memory.map[t]
+                #print(tile.coords,tile.pitRisk)
+                i= tile.coords[0]
+                j = tile.coords[1]
                 x = self.entryx + i
                 y = self.entryy - j
-                self.drawWompArc(x,y,self.wompusOdds[key])
-            for key in self.pitOdds:
-                print(key)
-                i,j = self.xyToNum(key)
-                x = self.entryx + i
-                y = self.entryy - j
-                self.drawPitArc(x,y,self.pitOdds[key])
+                if tile.isWall:
+                    self.drawWall(x,y)
+                if tile.knownPit:
+                    #print("known"+str(tile))
+                    self.drawKnownPit(x,y)
+                if tile.wasExplored:
+                    self.drawVisited(x,y)
+                if self.dead:
+                    self.drawPlayer(self.playerX,self.playerY)
+                self.drawWompArc(x,y,tile.wumpusRisk)
+                self.drawPitArc(x,y,tile.pitRisk)
+
     def drawSpace(self,x,y):
         #print("drawing space")
         qp = QPainter(self)

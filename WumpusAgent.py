@@ -1,11 +1,13 @@
+from MemoryMap import *
 class WumpusAgent:
     def __init__(self):
         self.explored = set()
         self.moves = list()
-        self.perceptMemory = dict()
-        self.knownSpaces = dict()#S = Safe, P = pit, W = Wompus, E = Edge
-        self.pitOdds = dict()#0-1, .25 = 1/4 chance
-        self.wompusOdds = dict()#0-1, .25 = 1/4 chance
+        #self.perceptMemory = dict()
+        #self.knownSpaces = dict()#S = Safe, P = pit, W = Wompus, E = Edge
+        #self.pitOdds = dict()#0-1, .25 = 1/4 chance
+        #self.wompusOdds = dict()#0-1, .25 = 1/4 chance
+        self.memMap = MemoryMap()
         self.x = 0
         self.y = 0
         self.move = ''
@@ -13,7 +15,7 @@ class WumpusAgent:
         self.kills = 0
         self.undoing = False
     def getMemory(self):
-        return self.knownSpaces, self.pitOdds, self.wompusOdds
+        return self.memMap
     def xyToStr(self,x,y):
         return str(x)+","+str(y)
     def posStr(self):
@@ -69,13 +71,11 @@ class WumpusAgent:
         self.undoCount += 1
         if self.undoCount == self.undoFor:
             self.undoing = False
-    def perceptToBools(self,percept):
-        return "S" in percept, "B" in percept, "G" in percept, "U" in percept, "C" in percept
     def logPercepts(self, stench, breeze, glitter, bump, scream):
-        adjList = [self.xyToStr(self.x,self.y+1),self.xyToStr(self.x+1,self.y),self.xyToStr(self.x,self.y-1),self.xyToStr(self.x-1,self.y),]
-        dirs = {"N":adjList[0],"E":adjList[1],"S":adjList[2],"W":adjList[3]}
-        if bump:
-            self.knownSpaces[dirs[self.moves[-1]]]="E"
+        #adjList = [self.xyToStr(self.x,self.y+1),self.xyToStr(self.x+1,self.y),self.xyToStr(self.x,self.y-1),self.xyToStr(self.x-1,self.y),]
+        #dirs = {"N":adjList[0],"E":adjList[1],"S":adjList[2],"W":adjList[3]}
+        #if bump:
+        #    self.knownSpaces[dirs[self.moves[-1]]]="E"
         if not self.posStr() in self.explored:
             self.explored.add(self.posStr())
             if breeze:
@@ -105,11 +105,9 @@ class WumpusAgent:
 
     def setParams(self, gametype, numarrows, numwumpi):
         self.explored = set()
-        self.moves = list()
+        self.moves = ['init']
+        self.memMap = MemoryMap()
         self.perceptMemory = dict()
-        self.knownSpaces = dict()#S = Safe, P = pit, W = Wompus, E = Edge
-        self.pitOdds = dict()#0-1, .25 = 1/4 chance
-        self.wompusOdds = dict()#0-1, .25 = 1/4 chance
         self.x = 0
         self.y = 0
         self.move = ''
@@ -119,21 +117,43 @@ class WumpusAgent:
         self.moving = gametype==2
         self.numarrows = numarrows
         self.numwumpi = numwumpi
+        self.devMode=True
     def getMove(self, percept):
-        print(self.pitOdds)
-        self.perceptMemory[self.posStr()] = percept
-        self.knownSpaces[self.posStr()]="S"#current space is guarenteed to be currently safe, would be dead if it were bad
+        ###self.perceptMemory[self.posStr()] = percept
+        ###self.knownSpaces[self.posStr()]="S"#current space is guarenteed to be currently safe, would be dead if it were bad
+        if "U" in percept:
+            last = self.moves[-1]
+            if last == "N":
+                self.y += -1
+            elif last == "E":
+                self.x +=-1
+            elif last =="S":
+                self.y +=1
+            elif last =="W":
+                self.x+=1
+        self.memMap.logTile(self.x,self.y,percept,self.moves[-1])
+        self.memMap.updateMap()
         if self.undoing:##keep for backtrack support
             self.undo()
-        stench, breeze, glitter, bump, scream = self.perceptToBools(percept)#bools to make parsing easier
-        self.logPercepts(stench, breeze, glitter, bump, scream)#data gathering function
+        ###self.logPercepts(stench, breeze, glitter, bump, scream)#data gathering function ###move to mem map
         
         
         
-        
+        if self.devMode:
+            if "1" in percept:
+                self.goNorth()
+                return(self.move)
+            elif "2" in percept:
+                self.goEast()
+                return(self.move)
+            elif "3" in percept:
+                self.goSouth()
+                return(self.move)
+            elif "4" in percept:
+                self.goWest()
+                return(self.move)
         self.goNorth()
 
-        print("percept", percept)
         return(self.move)
 ######################################## all agent code goes above, below just allows oop because lrn2code
 global ag
