@@ -347,7 +347,7 @@ class Ui(QtWidgets.QMainWindow):
                     self.gotgold = True
                     self.board[self.playerx][self.playery] = 0
             else:
-                print("Incorrect move string encountered, exiting")
+                print("Incorrect move string encountered, exiting",move)
                 exit()
 
             #death check!

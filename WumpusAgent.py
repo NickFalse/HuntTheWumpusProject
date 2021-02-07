@@ -14,6 +14,8 @@ class WumpusAgent:
         self.hasGold = False
         self.kills = 0
         self.undoing = False
+        self.pathing = False
+        self.path = []
     def getMemory(self):
         return self.memMap
     def xyToStr(self,x,y):
@@ -53,6 +55,7 @@ class WumpusAgent:
 ##########################others
     def grabGold(self):
         self.move = "G"
+        self.hasGold=True
     def climbOut(self):
         self.move = "C"
     def undoAll(self):
@@ -67,10 +70,19 @@ class WumpusAgent:
         undoDict = {"N":"S","S":"N","E":"W","W":"E"}
         return undoDict[move]
     def undo(self):
-        self.move = getOpposite(self.moves[self.undoStart-self.undoCount])
+        self.move = self.getOpposite(self.moves[self.undoStart-self.undoCount])
         self.undoCount += 1
         if self.undoCount == self.undoFor:
             self.undoing = False
+    def followPath(self,path):
+        self.path=path
+        self.pathing = True
+        self.followStep()
+    def followStep(self):
+        if self.x==0 and self.y==0:
+            self.climbOut()
+            return
+        self.letterToMove(self.path.pop())
     def logPercepts(self, stench, breeze, glitter, bump, scream):
         #adjList = [self.xyToStr(self.x,self.y+1),self.xyToStr(self.x+1,self.y),self.xyToStr(self.x,self.y-1),self.xyToStr(self.x-1,self.y),]
         #dirs = {"N":adjList[0],"E":adjList[1],"S":adjList[2],"W":adjList[3]}
@@ -101,8 +113,29 @@ class WumpusAgent:
             self.pitOdds[self.posStr()]=0
         
     
-    
-
+    def letterToMove(self,s):
+        print("letter:",s)
+        if s=="N":
+            self.goNorth()
+        if s=="E":
+            self.goEast()
+        if s=="S":
+            self.goSouth()
+        if s=="W":
+            self.goWest()
+    def goSafest(self,avoidExplored:bool=True,tolerance:float=0.1):
+        l=[]
+        if avoidExplored:
+            l = self.memMap.getUnexploredNeighbors(self.x,self.y)
+        if len(l)==0:
+            l=self.memMap.getNeighbors(self.x,self.y)        
+        l.sort()
+        print(l[0].getRisk())
+        if l[0].getRisk()>tolerance:
+            l=self.memMap.getNeighbors(self.x,self.y)
+            l.sort()
+        print(l[0].getRisk())
+        self.letterToMove(self.memMap.getRelativeDir(self.x,self.y,l[0]))
     def setParams(self, gametype, numarrows, numwumpi):
         self.explored = set()
         self.moves = ['init']
@@ -118,7 +151,9 @@ class WumpusAgent:
         self.numarrows = numarrows
         self.numwumpi = numwumpi
         self.devMode=True
+        self.pathing=False
     def getMove(self, percept):
+        print(self.path)
         ###self.perceptMemory[self.posStr()] = percept
         ###self.knownSpaces[self.posStr()]="S"#current space is guarenteed to be currently safe, would be dead if it were bad
         if "U" in percept:
@@ -131,10 +166,21 @@ class WumpusAgent:
                 self.y +=1
             elif last =="W":
                 self.x+=1
+        if "G" in percept:
+            self.grabGold()
+            return self.move
         self.memMap.logTile(self.x,self.y,percept,self.moves[-1])
         self.memMap.updateMap()
+        if self.pathing:
+            self.followStep()
+            return self.move
         if self.undoing:##keep for backtrack support
             self.undo()
+            return self.move
+        if self.hasGold and not self.pathing:
+            self.followPath(self.memMap.pathToMoves(self.memMap.getPathTo(self.memMap.map[(self.x,self.y)],self.memMap.map[(0,0)])))
+            print("path:",self.path)
+            return self.move
         ###self.logPercepts(stench, breeze, glitter, bump, scream)#data gathering function ###move to mem map
         
         
@@ -152,8 +198,8 @@ class WumpusAgent:
             elif "4" in percept:
                 self.goWest()
                 return(self.move)
-        self.goNorth()
-
+        #self.goNorth()
+        self.goSafest()
         return(self.move)
 ######################################## all agent code goes above, below just allows oop because lrn2code
 global ag

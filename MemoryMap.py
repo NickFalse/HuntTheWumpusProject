@@ -10,6 +10,117 @@ class MemoryMap:
         self.maxX = 0
         self.maxY = 0
         self.wallsFound = ''#NESW
+        self.distTipping = dict()
+    def dist(self,fromTile,toTile):#heuristic for a*
+        x=fromTile.coords[0]
+        y=fromTile.coords[1]
+        j=toTile.coords[0]
+        k=toTile.coords[1]
+        dx = abs(x-j)
+        dy = abs(y-k)
+        return ((dx)+(dy))#+self.distTipping[fromTile])
+    def pathToMoves(self,path):
+        mvs = []
+        while len(path)>1:
+            print("doing",str(path[0]),str(path[1]),"--",mvs)
+            mvs.append(self.getRelativeDirTiles(path[0],path[1]))
+            path=path[1:]
+        mvs.reverse()
+        return mvs
+    def reconstructPath(self,camefrom,current):
+        total_path = [current]
+        while current in camefrom:
+            print("current",str(current),"path",total_path)
+            current = camefrom[current]
+            total_path= [current]+total_path
+        p = "["
+        for tile in total_path:
+            p+=str(tile)+","
+        print(p)
+        return total_path
+    def getPathTo(self,fromTile,toTile):#a* strongly based on pseudo code from https://en.wikipedia.org/wiki/A*_search_algorithm
+        opn = set()
+        opn.add(fromTile)
+        cameFrom = dict()
+        gScore = dict()
+        gScore[fromTile]=0
+        fScore = dict()
+        fScore[fromTile]=self.dist(fromTile,toTile)
+        while len(opn)>0:
+            l=list(opn)
+            lowest:'Tile'
+            lowest = l[0]
+            opstr="open:["
+            for tile in l:
+                opstr+=str(tile)
+                if fScore[tile]<fScore[lowest]:
+                    lowest=tile
+            current = lowest
+            print("current",str(current),"open",opstr)
+            if current==toTile:
+                return self.reconstructPath(cameFrom,current)
+            opn.remove(current)
+            for neighbor in current.getExploredNeighbors():
+                tempGScore = gScore[current]+neighbor.getRisk()
+                if not neighbor in gScore:
+                    gScore[neighbor] = 999999999
+                if tempGScore<gScore[neighbor]:
+                    cameFrom[neighbor]=current
+                    gScore[neighbor]=tempGScore
+                    fScore[neighbor]=gScore[neighbor]+self.dist(neighbor,toTile)
+                if not neighbor in opn:
+                    opn.add(neighbor)
+                    if not neighbor in self.distTipping:#add it to map to increase cost every look up
+                        self.distTipping[neighbor]=0
+                    self.distTipping[neighbor]=self.distTipping[neighbor]+2#this whole chunk is for the purpose of reducing time lost to greed
+                    fScore[neighbor]+=self.distTipping[neighbor]
+
+
+        return 0
+    def getRelativeDir(self,x,y,tile):
+        co = tile.coords
+        i=co[0]
+        j=co[1]
+        re = ""
+        if j<y:
+            re+="S"
+        if j>y:
+            re+="N"
+        if i>x:
+            re+="E"
+        if i<x:
+            re+="W"
+        return re
+    def getRelativeDirTiles(self,fromT,tile):
+        co = tile.coords
+        i=co[0]
+        j=co[1]
+        x=fromT.coords[0]
+        y=fromT.coords[1]
+        re = ""
+        if j<y:
+            re+="S"
+        if j>y:
+            re+="N"
+        if i>x:
+            re+="E"
+        if i<x:
+            re+="W"
+        return re
+    def getNeighbors(self,x,y):
+        neighbors = self.map[(x,y)].getNeighbors()
+        re = []
+        for ne in neighbors:
+            if not (ne.isWall or ne.knownPit or ne.knownWumpus):
+                re.append(ne)
+        return re
+    def getUnexploredNeighbors(self,x,y):
+        neighbors = self.getNeighbors(x,y)
+        r = []
+        for neighbor in neighbors:
+            if not neighbor.wasExplored:
+                r.append(neighbor)
+        return r
     def getMap(self) -> dict():
         return self.map
     def logWall(self,x,y,d):
@@ -119,6 +230,8 @@ class Tile:#DO MORE CASTING https://mypy.readthedocs.io/en/stable/cheat_sheet_py
         self.messagesIn:List[Message]=[]#contributions recieved but not yet processed
         self.wasExplored:bool = False
         self.wallType = ""#NESW
+    def __lt__(self,other):
+        return self.getRisk()<other.getRisk()
     def __str__(self):
         return str(self.coords)
     def __hash__(self):
@@ -129,8 +242,10 @@ class Tile:#DO MORE CASTING https://mypy.readthedocs.io/en/stable/cheat_sheet_py
         self.isWall = True
         self.declareSafe()
         self.wallType=d
+        self.wasExplored=True
         self.overallRisk = 1000#set high cost for future algos
-    
+    def getRisk(self):
+        return self.pitRisk+self.wumpusRisk
     def setPercepts(self, percepts:PerceptsStruct):
         self.percepts=percepts
     def processPercepts(self):
@@ -173,6 +288,13 @@ class Tile:#DO MORE CASTING https://mypy.readthedocs.io/en/stable/cheat_sheet_py
         x = self.coords[0]
         y = self.coords[1]
         return [self.memMap.getTile(x,y+1),self.memMap.getTile(x+1,y),self.memMap.getTile(x,y-1),self.memMap.getTile(x-1,y)]
+    def getExploredNeighbors(self)->List['Tile']:
+        l = self.getNeighbors()
+        o = []
+        for n in l:
+            if n.wasExplored:
+                o.append(n)
+        return o
     def declareSafe(self):
         self.pitRisk = 0.0
         self.notPit = True
@@ -238,9 +360,7 @@ class Tile:#DO MORE CASTING https://mypy.readthedocs.io/en/stable/cheat_sheet_py
     
     #Contribution system: allow each tile to know where its risk origionates
     #tiles should check if something is already declared safe before contributing
-    def getRisk(self):#get the risk of the tile 0 = no risk, higher number higher risk
-        return pitRisk + wumpusRisk
-
+    #get the risk of the tile 0 = no risk, higher number higher risk
 
 
 def perceptToBools(percept:str):
