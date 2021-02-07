@@ -19,10 +19,18 @@ class MemoryMap:
         dx = abs(x-j)
         dy = abs(y-k)
         return ((dx)+(dy))#+self.distTipping[fromTile])
+    def pathToString(self,path):
+        re = "["
+        for tile in path:
+            re+=str(tile)+","
+        re = re[0:len(re)-1]
+        re+="]"
+        return re
     def pathToMoves(self,path):
+        #print("path",path)
         mvs = []
         while len(path)>1:
-            print("doing",str(path[0]),str(path[1]),"--",mvs)
+            #print("doing",str(path[0]),str(path[1]),"--",mvs)
             mvs.append(self.getRelativeDirTiles(path[0],path[1]))
             path=path[1:]
         mvs.reverse()
@@ -30,15 +38,18 @@ class MemoryMap:
     def reconstructPath(self,camefrom,current):
         total_path = [current]
         while current in camefrom:
-            print("current",str(current),"path",total_path)
+            #print("current",str(current),"path",total_path)
             current = camefrom[current]
             total_path= [current]+total_path
         p = "["
         for tile in total_path:
             p+=str(tile)+","
-        print(p)
+        #print(p)
         return total_path
     def getPathTo(self,fromTile,toTile):#a* strongly based on pseudo code from https://en.wikipedia.org/wiki/A*_search_algorithm
+        #if(toTile.coords==(0,0)):
+        #    print("pathing")
+        toTile.wasExplored=True
         opn = set()
         opn.add(fromTile)
         cameFrom = dict()
@@ -56,8 +67,12 @@ class MemoryMap:
                 if fScore[tile]<fScore[lowest]:
                     lowest=tile
             current = lowest
-            print("current",str(current),"open",opstr)
+            #print("current",str(current),"open",opstr)
+            #print("current:",str(current))
             if current==toTile:
+                toTile.wasExplored=False
+                #if(toTile.coords==(0,0)):
+                #    print("done pathing")
                 return self.reconstructPath(cameFrom,current)
             opn.remove(current)
             for neighbor in current.getExploredNeighbors():
@@ -68,15 +83,36 @@ class MemoryMap:
                     cameFrom[neighbor]=current
                     gScore[neighbor]=tempGScore
                     fScore[neighbor]=gScore[neighbor]+self.dist(neighbor,toTile)
-                if not neighbor in opn:
-                    opn.add(neighbor)
-                    if not neighbor in self.distTipping:#add it to map to increase cost every look up
-                        self.distTipping[neighbor]=0
-                    self.distTipping[neighbor]=self.distTipping[neighbor]+2#this whole chunk is for the purpose of reducing time lost to greed
-                    fScore[neighbor]+=self.distTipping[neighbor]
-
-
+                    if not neighbor in opn:
+                        opn.add(neighbor)
+                    #if not neighbor in self.distTipping:#add it to map to increase cost every look up
+                    #    self.distTipping[neighbor]=0
+                    #self.distTipping[neighbor]=self.distTipping[neighbor]+1#this whole chunk is for the purpose of reducing time lost to greed
+                    #fScore[neighbor]+=self.distTipping[neighbor]
         return 0
+    def getNearestUnexploredEdges(self,tile,count:int=1,riskTolerance:float=0,maxChecks:int=25):
+        checked = set()
+        tiles = [tile]
+        results = []
+        while len(tiles)>0:
+            if len(checked)>maxChecks:
+                return results
+            neighbors = tiles[0].getNeighbors()
+            for neighbor in neighbors:
+                if (not (neighbor.wasExplored or neighbor.isWall)) and neighbor.getRisk()<riskTolerance:
+                    if not neighbor in results:
+                        results.append(neighbor)
+                    if len(results)>=count:
+                        return results
+                elif neighbor.wasExplored and (not neighbor in checked) and (not neighbor.isWall) and (not neighbor in tiles):
+                    tiles.append(neighbor)
+            checked.add(tiles[0])
+            tiles.remove(tiles[0])
+            #if (len(tiles)+len(checked))>50:
+                #print(len(tiles),len(checked))
+        return results
+            
+
     def getRelativeDir(self,x,y,tile):
         co = tile.coords
         i=co[0]
@@ -292,7 +328,7 @@ class Tile:#DO MORE CASTING https://mypy.readthedocs.io/en/stable/cheat_sheet_py
         l = self.getNeighbors()
         o = []
         for n in l:
-            if n.wasExplored:
+            if n.wasExplored and not n.isWall:
                 o.append(n)
         return o
     def declareSafe(self):
