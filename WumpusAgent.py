@@ -133,35 +133,19 @@ class WumpusAgent:
             self.goSouth()
         if s=="W":
             self.goWest()
-    def goSafest(self,avoidExplored:bool=True,tolerance:float=0.5,checks:int=25):
-        l = self.memMap.getNearestUnexploredEdges(self.memMap.getTile(self.x,self.y),5,tolerance,checks)
+    def goSafest(self,avoidExplored:bool=True,tolerance:float=0.1,checks:int=25):
+        l = self.memMap.getNearestUnexploredEdges(self.memMap.getTile(self.x,self.y),2,tolerance,checks)
         #print(l)
         l.sort()#puts lowest risk at front
         if len(l)==0:
             xLen = self.memMap.maxX-self.memMap.minX
             yLen = self.memMap.maxY-self.memMap.minY
             bigLen = xLen if xLen>yLen else yLen
-            bigLen = 1 if bigLen==0 else bigLen
-            #print("going safest",tolerance+(float(checks)/(bigLen*bigLen)),checks*2)
+            bigLen = 2 if bigLen==0 else bigLen
             self.goSafest(True,tolerance+(float(checks)/(bigLen*bigLen)),checks*2)#tune this to reduce how long it gets stuck in weird situations
             return
-        #print("l0",str(l[0]))
         path = self.memMap.getPathTo(self.memMap.getTile(self.x,self.y),l[0])
-        #print("ag path",path)
-        #print(self.memMap.pathToString(path))
         self.followPath(self.memMap.pathToMoves(path))
-        #l=[]
-        #if avoidExplored:
-        #    l = self.memMap.getUnexploredNeighbors(self.x,self.y)
-        #if len(l)==0:
-        #    l=self.memMap.getNeighbors(self.x,self.y)        
-        #l.sort()
-        #print(l[0].getRisk())
-        #if l[0].getRisk()>tolerance:
-        #    l=self.memMap.getNeighbors(self.x,self.y)
-        #    l.sort()
-        #print(l[0].getRisk())
-        #self.letterToMove(self.memMap.getRelativeDir(self.x,self.y,l[0]))
     def setParams(self, gametype, numarrows, numwumpi):
         self.explored = set()
         self.moves = ['init']
