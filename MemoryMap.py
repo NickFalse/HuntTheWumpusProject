@@ -49,7 +49,10 @@ class MemoryMap:
     def getPathTo(self,fromTile,toTile):#a* strongly based on pseudo code from https://en.wikipedia.org/wiki/A*_search_algorithm
         #if(toTile.coords==(0,0)):
         #    print("pathing")
+        toWas = toTile.wasExplored
         toTile.wasExplored=True
+        fromWas = fromTile.wasExplored
+        fromTile.wasExplored=True
         opn = set()
         opn.add(fromTile)
         cameFrom = dict()
@@ -70,7 +73,8 @@ class MemoryMap:
             #print("current",str(current),"open",opstr)
             #print("current:",str(current))
             if current==toTile:
-                toTile.wasExplored=False
+                toTile.wasExplored=toWas
+                fromTile.wasExplored=fromWas
                 #if(toTile.coords==(0,0)):
                 #    print("done pathing")
                 return self.reconstructPath(cameFrom,current)
