@@ -335,7 +335,8 @@ for game in range(numgames):
     gotgold = False
     wumpilist = []
 
-
+after = datetime.now()
+dif = after-now
 f = open(name, "a")
 f.write("games:" + str(numgames)+"\n")
 f.write("wins:" + str(numwins)+"\n")
@@ -343,4 +344,5 @@ f.write("deaths:" + str(numpitdeaths + numwumpusdeaths)+"\n")
 f.write("pit:" + str(numpitdeaths)+"\n")
 f.write("wum:" + str(numwumpusdeaths)+"\n")
 f.write("timeout:" + str(numtimeouts)+"\n")
+f.write("avgTimePerGame:"+str(float(dif.seconds)/numgames)+"\n")
 f.close()

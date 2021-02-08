@@ -1,0 +1,5 @@
+Still Data: {'games': 1000, 'wins': 947, 'deaths': 53, 'pit': 38, 'wum': 15, 'timeout': 0}
+Still Stats: win%:0.947 death%:0.053 pit%:0.038 wumpus%:0.015 timeout%:0.0
+Move Data: {'games': 1000, 'wins': 297, 'deaths': 703, 'pit': 29, 'wum': 674, 'timeout': 0}
+Move Stats: win%:0.297 death%:0.703 pit%:0.029 wumpus%:0.674 timeout%:0.0
+Deltas: win%:0.6499999999999999 death%:-0.6499999999999999 pit%0.008999999999999998 wumpus%:-0.659
