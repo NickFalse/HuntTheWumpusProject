@@ -389,7 +389,8 @@ class Ui(QtWidgets.QMainWindow):
             if self.nummoves == 4000000:
                 numtimeouts = numtimeouts + 1
             self.drawStuff()
-            time.sleep(.5)
+            QApplication.processEvents()
+            #time.sleep(float(self.speedSlider.value())/1000.0)
             
         #quick status print
         #print("Game number " + str(game) + " complete in " + str(self.nummoves) + " moves.")
