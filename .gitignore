@@ -1,2 +1,6 @@
 __pycache__/
+automatedResults/*.txt
+automatedResults/Moving/*.txt
+automatedResults/Still/*.txt
 *.pyc
+testScript.bat
