@@ -220,3 +220,5 @@ def getMove(percept):
     return ag.getMove(percept)
 def getMemory():
     return ag.getMemory()
+def getPath():
+    return ag.path

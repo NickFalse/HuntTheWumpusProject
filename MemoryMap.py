@@ -383,13 +383,13 @@ class Tile:#DO MORE CASTING https://mypy.readthedocs.io/en/stable/cheat_sheet_py
                     wum = message.fromTile.wumpusContributions[self]
                     neighbors = self.getNeighbors()
                     numSafe = 0.0
-                    unsafe = []
+                    recievers = []
                     for neighbor in neighbors:
-                        if neighbor.notWumpus or neighbor.isWall or neighbor.knownPit:
-                            unsafe.append(neighbor)
+                        if not (neighbor.notWumpus or neighbor.isWall or neighbor.knownPit):
+                            recievers.append(neighbor)
                         else:
                             numSafe+=1
-                    for neighbor in unsafe:
+                    for neighbor in recievers:
                         self.memMap.sendMessage(Message(neighbor,self,MessageEnum.WUMPUS_CHANCE_SENSED,wum/(4-numSafe)))
                     message.fromTile.wumpusContributions[self]=0
             if messageType==MessageEnum.RECIEVER_SAFE:

@@ -11,6 +11,7 @@
 #Note: there are very few self-error checks as part of this program.
 from random import randint
 import WumpusAgent
+import copy
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import QObject, pyqtSignal, QSize
 from PyQt5.QtGui import QPainter, QColor, QFont, QPen
@@ -21,6 +22,7 @@ from PyQt5.QtCore import Qt
 import sys
 import time
 import MemoryMap
+from datetime import datetime
 #--------------------------
 #globals
 #--------------------------
@@ -200,6 +202,8 @@ class Ui(QtWidgets.QMainWindow):
             self.isWon = True
             return True
         return False
+    def closeEvent(self,event):
+        self.autoStepBox.setChecked(False)
     def __init__(self):
         super(Ui, self).__init__()
         uic.loadUi('ui.ui', self)
@@ -213,7 +217,7 @@ class Ui(QtWidgets.QMainWindow):
         self.numarrows = self.arrowNumSpin.value()
         self.numgames = 1
         self.newGameButton.clicked.connect(self.initBoard)
-        self.runStepsButton.clicked.connect(self.doStep)
+        self.runStepsButton.clicked.connect(self.onStepButton)
         self.percept = ''
         self.hLayoutFrame = QHBoxLayout(self)
         self.remoteBox.clicked.connect(self.onRemoteCheck)
@@ -224,8 +228,14 @@ class Ui(QtWidgets.QMainWindow):
         self.southButton.clicked.connect(self.onDevSouth)
         self.eastButton.clicked.connect(self.onDevEast)
         self.westButton.clicked.connect(self.onDevWest)
+        self.closed = False
         self.onRemoteCheck()
         self.initBoard()
+    def onStepButton(self):
+        self.doStep()
+        while self.autoStepBox.isChecked():
+            QApplication.processEvents()
+            self.doStep()
     def onRemoteCheck(self):
         if self.remoteBox.isChecked():
             self.remoteGroup.setEnabled(True)
@@ -250,6 +260,7 @@ class Ui(QtWidgets.QMainWindow):
         self.paintWidget.setPlayerPos(self.playerx,self.playery)
         self.paintWidget.setDead(self.isDead)
         self.perceptLabel.setText(self.percept)
+        self.paintWidget.path = copy.deepcopy(self.WumpusAgent.getPath())
         if self.showMemoryBox.isChecked():
             self.paintWidget.memoryEnabled(True)
             memory = self.WumpusAgent.getMemory()
@@ -289,9 +300,14 @@ class Ui(QtWidgets.QMainWindow):
         if breezeCheck(self.playerx, self.playery, self.board):
             self.percept = self.percept + 'B'
         self.drawStuff()
+        if self.autoStepBox.isChecked():
+            self.doStep()
     def doStep(self):
         steps = self.stepsCombo.value()
         initialnum = self.nummoves
+        if self.isDead or self.isWon or self.nummoves>=4000000:
+            if self.autoNewBox.isChecked():
+                self.initBoard()
         while self.isDead != True and self.isWon != True and self.nummoves != 4000000 and (self.nummoves-initialnum)<steps:
             self.nummoves = self.nummoves + 1
             #get move from agent
@@ -341,6 +357,8 @@ class Ui(QtWidgets.QMainWindow):
             elif move == 'C':
                 if self.winCheck(self.playerx, self.playery, self.board):
                     self.numwins = self.numwins + 1
+                    if self.autoNewBox.isChecked():
+                        self.initBoard()
                     break
             elif move == 'G':
                 if self.board[self.playerx][self.playery] == 'g':
@@ -371,6 +389,8 @@ class Ui(QtWidgets.QMainWindow):
                     self.paintWidget.setDead(self.isDead)
                     self.perceptLabel.setText(self.percept)
                     self.update()
+                if self.autoNewBox.isChecked():
+                        self.initBoard()
                 break
 
             #other self.percepts
@@ -390,6 +410,15 @@ class Ui(QtWidgets.QMainWindow):
                 numtimeouts = numtimeouts + 1
             self.drawStuff()
             QApplication.processEvents()
+            before = datetime.now()
+            after = datetime.now()
+            dif = after-before
+            while (dif.seconds+float(dif.microseconds)/1000000)<float(self.speedSlider.value())/1000.0:
+                QApplication.processEvents()
+                after = datetime.now()
+                dif = after-before
+            #if self.autoStepBox.isChecked():
+            #    self.doStep()
             #time.sleep(float(self.speedSlider.value())/1000.0)
             
         #quick status print
@@ -403,6 +432,7 @@ class PaintWidget(QWidget):
             self.board = [[]]
             self.playerX = 0
             self.playerY=0
+            
         for y in range(0,len(self.board)):
             for x in range(0,len(self.board[y])):
                 if(self.board[y][x])==0:
@@ -439,11 +469,41 @@ class PaintWidget(QWidget):
         qp = QPainter(self)
         boardWid, boardLen = self.getBoardDims()
         drawWid, drawLen = self.getDrawDims()
-        qp.setPen(QPen(QColor(200,0,200), 3))
-        qp.setBrush(QColor(200,0,200))
+        qp.setPen(QPen(QColor(148,0,211), 3))
+        qp.setBrush(QColor(148,0,211))
         squareLen = (drawLen/boardLen)
         squareWid = (drawWid/boardWid)
         qp.drawArc(x*squareWid,y*squareLen,squareWid,squareLen,5760/2,5760*f)
+    def drawPath(self):
+        try:
+            self.path
+        except:
+            self.path = []
+        qp = QPainter(self)
+        boardWid, boardLen = self.getBoardDims()
+        drawWid, drawLen = self.getDrawDims()
+        qp.setPen(QPen(QColor(0,255,0), 3))
+        qp.setBrush(QColor(0,255,0))
+        squareLen = (drawLen/boardLen)
+        squareWid = (drawWid/boardWid)
+        tempX = self.playerX
+        tempY = self.playerY
+        while len(self.path)>=1:
+            move = self.path.pop()
+            nextX = tempX
+            nextY = tempY
+            if move=="N":
+                nextY-=1
+            if move=="S":
+                nextY+=1
+            if move=="W":
+                nextX-=1
+            if move=="E":
+                nextX+=1
+            qp.drawLine(tempX*squareWid+(.5*squareWid),tempY*squareLen+(.5*squareLen),nextX*squareWid+(.5*squareWid),nextY*squareLen+(.5*squareLen))
+            tempX = nextX
+            tempY = nextY
+
     def drawPitArc(self,x,y,f):
         qp = QPainter(self)
         boardWid, boardLen = self.getBoardDims()
@@ -475,6 +535,16 @@ class PaintWidget(QWidget):
         squareWid = (drawWid/boardWid)
         qp.drawLine(x*squareWid,y*squareLen,x*squareWid+squareWid,y*squareLen+squareLen)
         qp.drawLine(x*squareWid,y*squareLen+squareLen,x*squareWid+squareWid,y*squareLen)
+    def drawKnownWumpus(self,x,y):
+        qp = QPainter(self)
+        qp.setPen(QPen(QColor(148,0,211), 3))
+        qp.setBrush(QColor(148,0,211))
+        boardWid, boardLen = self.getBoardDims()
+        drawWid, drawLen = self.getDrawDims()
+        squareLen = (drawLen/boardLen)
+        squareWid = (drawWid/boardWid)
+        qp.drawLine(x*squareWid,y*squareLen,x*squareWid+squareWid,y*squareLen+squareLen)
+        qp.drawLine(x*squareWid,y*squareLen+squareLen,x*squareWid+squareWid,y*squareLen)
     def drawVisited(self,x,y):
         qp = QPainter(self)
         boardWid, boardLen = self.getBoardDims()
@@ -496,6 +566,8 @@ class PaintWidget(QWidget):
                 y = self.entryy - j
                 if tile.isWall:
                     self.drawWall(x,y)
+                if tile.knownWumpus:
+                    self.drawKnownWumpus(x,y)
                 if tile.knownPit:
                     #print("known"+str(tile))
                     self.drawKnownPit(x,y)
@@ -505,6 +577,8 @@ class PaintWidget(QWidget):
                     self.drawPlayer(self.playerX,self.playerY)
                 self.drawWompArc(x,y,tile.wumpusRisk)
                 self.drawPitArc(x,y,tile.pitRisk)
+                self.drawPath()
+
 
     def drawSpace(self,x,y):
         #print("drawing space")
