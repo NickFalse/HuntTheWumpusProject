@@ -17,6 +17,8 @@ class WumpusAgent:
         self.pathing = False
         self.path = []
         self.riskTolerance = .1
+        self.moveCount = 0
+        self.flip=False
     def getMemory(self):
         return self.memMap
     def xyToStr(self,x,y):
@@ -90,35 +92,6 @@ class WumpusAgent:
         self.letterToMove(self.path.pop())
         if len(self.path)==0:
             self.pathing = False
-    def logPercepts(self, stench, breeze, glitter, bump, scream):
-        #adjList = [self.xyToStr(self.x,self.y+1),self.xyToStr(self.x+1,self.y),self.xyToStr(self.x,self.y-1),self.xyToStr(self.x-1,self.y),]
-        #dirs = {"N":adjList[0],"E":adjList[1],"S":adjList[2],"W":adjList[3]}
-        #if bump:
-        #    self.knownSpaces[dirs[self.moves[-1]]]="E"
-        if not self.posStr() in self.explored:
-            self.explored.add(self.posStr())
-            if breeze:
-                for xy in adjList:
-                    if not xy in self.explored:
-                        if xy in self.pitOdds:
-                            self.pitOdds[xy]+=.25
-                            if self.pitOdds[xy]==1:
-                                self.knownSpaces[xy]="P"
-                        else:
-                            self.pitOdds[xy]=.25
-            if stench:
-                for xy in adjList:
-                    if not xy in self.explored:
-                        if xy in self.wompusOdds:
-                            self.wompusOdds[xy]+=.25
-                            if self.wompusOdds[xy]==1:
-                                self.knownSpaces[xy]="W"
-                        else:
-                            self.wompusOdds[xy]=.25
-        if self.knownSpaces[self.posStr()]=="S" or self.posStr()=="0,0":
-            self.wompusOdds[self.posStr()]=0
-            self.pitOdds[self.posStr()]=0
-        
     def reverseIn(self,inp):
         d = inp
         d.reverse()
@@ -150,6 +123,7 @@ class WumpusAgent:
         self.explored = set()
         self.moves = ['init']
         self.memMap = MemoryMap()
+        self.memMap.moving=True if gametype==2 else False
         self.perceptMemory = dict()
         self.x = 0
         self.y = 0
@@ -162,6 +136,7 @@ class WumpusAgent:
         self.numwumpi = numwumpi
         self.devMode=True
         self.pathing=False
+        self.moveCount=0
     def getMove(self, percept):
         #print(self.path)
         ###self.perceptMemory[self.posStr()] = percept
@@ -181,6 +156,11 @@ class WumpusAgent:
             return self.move
         self.memMap.logTile(self.x,self.y,percept,self.moves[-1])
         self.memMap.updateMap()
+        if(self.moving and self.moveCount<20000):
+            self.shootNorth()
+            self.moveCount+=1
+            #print(self.moveCount)
+            return self.move
         if self.pathing:
             self.followStep()
             return self.move

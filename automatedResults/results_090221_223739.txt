@@ -1,0 +1,7 @@
+Still Data: {'games': 1000.0, 'wins': 960.0, 'deaths': 40.0, 'pit': 30.0, 'wum': 10.0, 'timeout': 0.0, 'avgTimePerGame': 9.58}
+Still Stats: win%:0.96 death%:0.04 pit%:0.03 wumpus%:0.01 timeout%:0.0
+Average time per game:0.958
+Move Data: {'games': 1000.0, 'wins': 289.0, 'deaths': 711.0, 'pit': 26.0, 'wum': 685.0, 'timeout': 0.0, 'avgTimePerGame': 5.42}
+Move Stats: win%:0.289 death%:0.711 pit%:0.026 wumpus%:0.685 timeout%:0.0
+Deltas: win%:0.671 death%:-0.6709999999999999 pit%0.004 wumpus%:-0.675
+Average time per game:0.542

@@ -1,5 +1,6 @@
 from enum import Enum
-from typing import Union, Any, List, Optional, cast
+from typing import Union, Any, List, Optional, cast, Dict
+import random
 class MemoryMap:
     def __init__(self):
         self.map = dict()
@@ -10,6 +11,8 @@ class MemoryMap:
         self.maxX = 0
         self.maxY = 0
         self.wallsFound = ''#NESW
+        self.wumTiles=[]
+        self.justPlacedTiles=[]#wumpus risks that were just placed and should be ignored for a round
         self.distTipping = dict()
     def dist(self,fromTile,toTile):#heuristic for a*
         x=fromTile.coords[0]
@@ -46,6 +49,14 @@ class MemoryMap:
             p+=str(tile)+","
         #print(p)
         return total_path
+    def wumpusPropagationTick(self):
+        if self.moving:
+            for tile in self.wumTiles:
+                tile.propagateWumpus()
+            for tile in self.justPlacedTiles:
+                if not tile in self.wumTiles:
+                    self.wumTiles.append(tile)
+            self.justPlacedTiles.clear()
     def getPathTo(self,fromTile,toTile):#a* strongly based on pseudo code from https://en.wikipedia.org/wiki/A*_search_algorithm
         #if(toTile.coords==(0,0)):
         #    print("pathing")
@@ -80,7 +91,7 @@ class MemoryMap:
                 return self.reconstructPath(cameFrom,current)
             opn.remove(current)
             for neighbor in current.getExploredNeighbors():
-                tempGScore = gScore[current]+neighbor.getRisk()
+                tempGScore = gScore[current]+(neighbor.getRisk()*50)
                 if not neighbor in gScore:
                     gScore[neighbor] = 999999999
                 if tempGScore<gScore[neighbor]:
@@ -95,13 +106,18 @@ class MemoryMap:
                     #fScore[neighbor]+=self.distTipping[neighbor]
         return 0
     def getNearestUnexploredEdges(self,tile,count:int=1,riskTolerance:float=0,maxChecks:int=25):
+        #print(str(tile),count,riskTolerance)
         checked = set()
         tiles = [tile]
         results = []
         while len(tiles)>0:
+            #print("set")
+            #for t in checked:
+                #print(str(t),t.getRisk())
             if len(checked)>maxChecks:
                 return results
             neighbors = tiles[0].getNeighbors()
+            #print("neighbors",len(neighbors))
             for neighbor in neighbors:
                 if (not (neighbor.wasExplored or neighbor.isWall)) and neighbor.getRisk()<riskTolerance:
                     if not neighbor in results:
@@ -218,6 +234,7 @@ class MemoryMap:
             self.map[x,y]=Tile(x,y,self)
         return self.map[(x,y)]
     def updateMap(self):
+        self.wumpusPropagationTick()
         while not len(self.messagedTiles)==0:
             tile = self.messagedTiles.pop()
             tile.processMessages()
@@ -270,6 +287,8 @@ class Tile:#DO MORE CASTING https://mypy.readthedocs.io/en/stable/cheat_sheet_py
         self.messagesIn:List[Message]=[]#contributions recieved but not yet processed
         self.wasExplored:bool = False
         self.wallType = ""#NESW
+        self.neighborMode = 0#0 = default, 1 = spiral, 2 = random
+        self.randomizeNeighbors = True
     def __lt__(self,other):
         return self.getRisk()<other.getRisk()
     def __str__(self):
@@ -308,10 +327,28 @@ class Tile:#DO MORE CASTING https://mypy.readthedocs.io/en/stable/cheat_sheet_py
                     for neighbor in unsafe:
                         message = Message(neighbor,self,MessageEnum.PIT_CHANCE,1/(4-numSafe))
                         self.memMap.sendMessage(message)
+                        
 
 
         if self.percepts.stench:#handle breeze
-            if (not self.wasExplored):# or self.moving:
+            if self.memMap.moving:
+                factor = 1.0
+                risk = (1.0/9.0)*factor
+                x = self.coords[0]
+                y = self.coords[1]
+                tiles = [(x,y),(x+2,y),(x+1,y+1),(x,y+2),(x-1,y+1),(x-2,y),(x-1,y-1),(x,y-2),(x+1,y-1)]
+                for t in tiles:
+                    tile = self.memMap.getTile(t[0],t[1])
+                    tile.wumpusRisk=risk
+                    if not tile in self.memMap.wumTiles:
+                        self.memMap.justPlacedTiles.append(tile)
+                tiles = [(x+1,y),(x,y+1),(x,y-1),(x-1,y)]
+                for t in tiles:
+                    tile = self.memMap.getTile(t[0],t[1])
+                    tile.wumpusRisk=tile.wumpusRisk/4.0
+                    if not tile in self.memMap.wumTiles:
+                        self.memMap.wumTiles.append(tile)
+            elif (not self.wasExplored) :
                 neighbors = self.getNeighbors()
                 numSafe = 0.0
                 unsafe = []
@@ -323,11 +360,74 @@ class Tile:#DO MORE CASTING https://mypy.readthedocs.io/en/stable/cheat_sheet_py
                 if numSafe<4:
                     for neighbor in unsafe:
                         message = Message(neighbor,self,MessageEnum.WUMPUS_CHANCE_SENSED,1/(4-numSafe))
+                        
                         self.memMap.sendMessage(message)
+    def propagateWumpus(self):
+        neighbors = self.getNeighbors()
+        numSafe = 0.0
+        unsafe = []
+        for neighbor in neighbors:
+            if not(neighbor.notWumpus or neighbor.isWall or neighbor.knownPit):
+                unsafe.append(neighbor)
+            else:
+                numSafe+=1
+        
+        if self.wumpusRisk>1:
+            self.wumpusRisk=1
+        if numSafe<4:
+            for neighbor in unsafe:
+                    risk = (((.25*self.wumpusRisk)))
+                    risk = risk if (((.25*self.wumpusRisk)))<.2 else .2
+                    #print(risk,self.wumpusRisk)
+                    if risk>.01:
+                        message = Message(neighbor,self,MessageEnum.WUMPUS_CHANCE_PROPAGATION,risk)
+                        
+                        self.memMap.sendMessage(message)
+        self.wumpusRisk=((.25*self.wumpusRisk)*(numSafe))#1.2 causes decay
+        if self.wumpusRisk<0:
+            self.wumpusRisk=0
+        if self.wumpusRisk<.02:
+            self.wumpusRisk=0
+            if self in self.memMap.wumTiles:
+                self.memMap.wumTiles.remove(self)
     def getNeighbors(self)->List['Tile']:#returns North, east, south, west
         x = self.coords[0]
         y = self.coords[1]
-        return [self.memMap.getTile(x,y+1),self.memMap.getTile(x+1,y),self.memMap.getTile(x,y-1),self.memMap.getTile(x-1,y)]
+        tN=self.memMap.getTile(x,y-1)
+        tS=self.memMap.getTile(x,y+1)
+        tE=self.memMap.getTile(x-1,y)
+        tW=self.memMap.getTile(x+1,y)
+        re=[]
+        if(self.neighborMode==1):
+            re = [0,0,0,0]
+            if abs(x)>abs(y):
+                re[0]=tS if x>=0 else tN
+                re[2]=tN if x>=0 else tS
+                re[1]=tE if x>=0 else tW
+                re[3]=tW if x>=0 else tE
+            elif abs(y)>abs(x):
+                re[1]=tN if y>=0 else tS
+                re[3]=tS if y>=0 else tN
+                re[0]=tE if y>=0 else tW
+                re[2]=tW if y>=0 else tE
+            else:
+                if x>0 and y>0:
+                    re=[tE,tN,tW,tS]
+                elif x<0 and y>0:
+                    re=[tN,tW,tS,tE]
+                elif x<0 and y<0:
+                    re=[tW,tS,tE,tN]
+                else:
+                    re=[tS,tE,tN,tW]
+        elif self.neighborMode==2:#random
+            re= [self.memMap.getTile(x,y+1),self.memMap.getTile(x+1,y),self.memMap.getTile(x,y-1),self.memMap.getTile(x-1,y)]
+            if(self.randomizeNeighbors):
+                random.shuffle(re)
+        else:#default explore east to west
+            re= [self.memMap.getTile(x,y+1),self.memMap.getTile(x+1,y),self.memMap.getTile(x,y-1),self.memMap.getTile(x-1,y)]
+        return re
+        #re = [dic[0],dic[1],dic[2],dic[3]]
+        #print(str(self),"neighbors",str(re[0]),str(re[1]),str(re[2]),str(re[3]))
     def getExploredNeighbors(self)->List['Tile']:
         l = self.getNeighbors()
         o = []
@@ -340,11 +440,13 @@ class Tile:#DO MORE CASTING https://mypy.readthedocs.io/en/stable/cheat_sheet_py
         self.notPit = True
         if not self.memMap.moving:
             self.notWumpus=True
-        self.wumpusRisk = 0.0
+        if not self.wumpusRisk==.9:
+            self.wumpusRisk = 0.0
         for con in self.pitContributions:
             self.memMap.sendMessage(Message(con,self,MessageEnum.SENDER_SAFE))
-        for con in self.wumpusContributions:
-            self.memMap.sendMessage(Message(con,self,MessageEnum.SENDER_SAFE))
+        if not self.memMap.moving:
+            for con in self.wumpusContributions:
+                self.memMap.sendMessage(Message(con,self,MessageEnum.SENDER_SAFE))
     def processMessages(self):
         for message in self.messagesIn:
             #print(self.coords,message,message.toTile.notPit,message.fromTile.notPit)
@@ -395,13 +497,10 @@ class Tile:#DO MORE CASTING https://mypy.readthedocs.io/en/stable/cheat_sheet_py
             if messageType==MessageEnum.RECIEVER_SAFE:
                 self.declareSafe()    
             if messageType ==MessageEnum.WUMPUS_CHANCE_PROPAGATION:
-                print("moving wumpi")
+                self.wumpusRisk+=message.amount
+                if not self in self.memMap.wumTiles:
+                    self.memMap.wumTiles.append(self)
         self.messagesIn.clear()
-    
-    #Contribution system: allow each tile to know where its risk origionates
-    #tiles should check if something is already declared safe before contributing
-    #get the risk of the tile 0 = no risk, higher number higher risk
-
 
 def perceptToBools(percept:str):
         return "S" in percept, "B" in percept, "G" in percept, "U" in percept, "C" in percept
