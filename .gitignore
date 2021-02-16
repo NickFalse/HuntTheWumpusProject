@@ -1,4 +1,5 @@
 __pycache__/
+.vscode/
 automatedResults/Moving/*.txt
 automatedResults/Still/*.txt
 *.pyc

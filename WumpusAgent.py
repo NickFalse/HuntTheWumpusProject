@@ -19,6 +19,7 @@ class WumpusAgent:
         self.riskTolerance = .1
         self.moveCount = 0
         self.flip=False
+        self.dev=True #Dev option, Default to False
     def getMemory(self):
         return self.memMap
     def xyToStr(self,x,y):
@@ -156,7 +157,7 @@ class WumpusAgent:
             return self.move
         self.memMap.logTile(self.x,self.y,percept,self.moves[-1])
         self.memMap.updateMap()
-        if(self.moving and self.moveCount<20000):
+        if(self.moving and self.moveCount<20000 and not self.dev):
             self.shootNorth()
             self.moveCount+=1
             #print(self.moveCount)
