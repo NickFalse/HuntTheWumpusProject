@@ -230,9 +230,19 @@
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Dev Controls</string>
+          <string>Meta Controls</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <widget class="QCheckBox" name="waitSkipBox">
+            <property name="text">
+             <string>Skip 20k Wait on Moving Wumpi</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
           <item>
            <widget class="QCheckBox" name="showMemoryBox">
             <property name="text">

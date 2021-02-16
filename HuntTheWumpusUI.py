@@ -229,6 +229,7 @@ class Ui(QtWidgets.QMainWindow):
         self.eastButton.clicked.connect(self.onDevEast)
         self.westButton.clicked.connect(self.onDevWest)
         self.closed = False
+        self.waitSkipBox.clicked.connect(self.onSkipCheck)
         self.onRemoteCheck()
         self.initBoard()
     def onStepButton(self):
@@ -243,6 +244,8 @@ class Ui(QtWidgets.QMainWindow):
         else:
             self.remoteGroup.setEnabled(False)
             self.remoteGroup.setHidden(True)
+    def onSkipCheck(self):
+        self.WumpusAgent.setSkipWait(self.waitSkipBox.isChecked())
     def onDevNorth(self):
         self.percept+="1"
         self.doStep()
@@ -288,6 +291,7 @@ class Ui(QtWidgets.QMainWindow):
         #set parameter for player - this is the reset for the WumpusAgent
         self.WumpusAgent = WumpusAgent
         self.WumpusAgent.setParams(self.gametype, self.numarrows, self.numwumpi)
+        self.WumpusAgent.setSkipWait(self.waitSkipBox.isChecked())
         #player got gold?
         
 

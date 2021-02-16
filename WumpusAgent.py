@@ -3,10 +3,7 @@ class WumpusAgent:
     def __init__(self):
         self.explored = set()
         self.moves = list()
-        #self.perceptMemory = dict()
-        #self.knownSpaces = dict()#S = Safe, P = pit, W = Wompus, E = Edge
-        #self.pitOdds = dict()#0-1, .25 = 1/4 chance
-        #self.wompusOdds = dict()#0-1, .25 = 1/4 chance
+
         self.memMap = MemoryMap()
         self.x = 0
         self.y = 0
@@ -19,7 +16,7 @@ class WumpusAgent:
         self.riskTolerance = .1
         self.moveCount = 0
         self.flip=False
-        self.dev=True #Dev option, Default to False used to skip 20k wait on ui
+        self.waitSkip=False #Dev option, Default to False used to skip 20k wait on ui
     def getMemory(self):
         return self.memMap
     def xyToStr(self,x,y):
@@ -132,19 +129,18 @@ class WumpusAgent:
         self.hasGold = False
         self.kills = 0
         self.undoing = False
-        self.moving = gametype==2
-        self.numarrows = numarrows
-        self.numwumpi = numwumpi
+        self.moving = self.memMap.moving
+        self.numarrows = numarrows if numarrows>-1 else 1
+        self.numwumpi = numwumpi if numarrows>-1 else 1
         self.devMode=True
         self.pathing=False
         self.moveCount=0
+    def skipWait(self,b:bool):
+        self.waitSkip = b
     def getMove(self, percept):
-        #print(self.path)
-        ###self.perceptMemory[self.posStr()] = percept
-        ###self.knownSpaces[self.posStr()]="S"#current space is guarenteed to be currently safe, would be dead if it were bad
-        if "U" in percept:
-            last = self.moves[-1]
-            if last == "N":
+        if "U" in percept:#handle bump and adjust coords
+            last = self.moves[-1]#get last move
+            if last == "N":#if dir, reverse that coord chance
                 self.y += -1
             elif last == "E":
                 self.x +=-1
@@ -152,12 +148,16 @@ class WumpusAgent:
                 self.y +=1
             elif last =="W":
                 self.x+=1
-        if "G" in percept:
+        
+        if "G" in percept:#if standing on gold
             self.grabGold()
-            return self.move
-        self.memMap.logTile(self.x,self.y,percept,self.moves[-1])
-        self.memMap.updateMap()
-        if(self.moving and self.moveCount<20000 and not self.dev):
+            return self.move#return so move not overriden
+        
+        self.memMap.logTile(self.x,self.y,percept,self.moves[-1])#logs tile standing on
+        self.memMap.updateMap()#update the map, this lets all the tiles communicate their findings with eachother
+        #especially useful on moving wumpi where risk moves around
+
+        if(self.moving and self.moveCount<20000 and not self.waitSkip):#moving wumpi are much denser against the wall as game goes on, this helps us avoid them
             self.shootNorth()
             self.moveCount+=1
             #print(self.moveCount)
@@ -201,5 +201,7 @@ def getMove(percept):
     return ag.getMove(percept)
 def getMemory():
     return ag.getMemory()
+def setSkipWait(b:bool):
+    ag.skipWait(b)
 def getPath():
     return ag.path

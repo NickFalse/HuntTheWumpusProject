@@ -287,8 +287,7 @@ class Tile:#DO MORE CASTING https://mypy.readthedocs.io/en/stable/cheat_sheet_py
         self.messagesIn:List[Message]=[]#contributions recieved but not yet processed
         self.wasExplored:bool = False
         self.wallType = ""#NESW
-        self.neighborMode = 0#0 = default, 1 = spiral, 2 = random
-        self.randomizeNeighbors = True
+        self.neighborMode = 0 if not self.memMap.moving else 1#0 = default, 1 = spiral, 2 = random
     def __lt__(self,other):
         return self.getRisk()<other.getRisk()
     def __str__(self):
@@ -421,8 +420,7 @@ class Tile:#DO MORE CASTING https://mypy.readthedocs.io/en/stable/cheat_sheet_py
                     re=[tS,tE,tN,tW]
         elif self.neighborMode==2:#random
             re= [self.memMap.getTile(x,y+1),self.memMap.getTile(x+1,y),self.memMap.getTile(x,y-1),self.memMap.getTile(x-1,y)]
-            if(self.randomizeNeighbors):
-                random.shuffle(re)
+            random.shuffle(re)
         else:#default explore east to west
             re= [self.memMap.getTile(x,y+1),self.memMap.getTile(x+1,y),self.memMap.getTile(x,y-1),self.memMap.getTile(x-1,y)]
         return re
