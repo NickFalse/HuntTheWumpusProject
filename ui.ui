@@ -151,7 +151,7 @@
              <number>200</number>
             </property>
             <property name="value">
-             <number>10</number>
+             <number>20</number>
             </property>
            </widget>
           </item>
@@ -170,13 +170,24 @@
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="QSpinBox" name="arrowNumSpin"/>
+           <widget class="QSpinBox" name="arrowNumSpin">
+            <property name="value">
+             <number>1</number>
+            </property>
+           </widget>
           </item>
           <item row="2" column="1">
-           <widget class="QSpinBox" name="wumpiNumSpin"/>
+           <widget class="QSpinBox" name="wumpiNumSpin">
+            <property name="value">
+             <number>1</number>
+            </property>
+           </widget>
           </item>
           <item row="3" column="1">
            <widget class="QComboBox" name="wumpiTypeCombo">
+            <property name="currentText">
+             <string>Non Moving</string>
+            </property>
             <item>
              <property name="text">
               <string>Moving</string>
