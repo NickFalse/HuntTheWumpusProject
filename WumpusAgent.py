@@ -19,7 +19,7 @@ class WumpusAgent:
         self.riskTolerance = .1
         self.moveCount = 0
         self.flip=False
-        self.dev=True #Dev option, Default to False
+        self.dev=True #Dev option, Default to False used to skip 20k wait on ui
     def getMemory(self):
         return self.memMap
     def xyToStr(self,x,y):

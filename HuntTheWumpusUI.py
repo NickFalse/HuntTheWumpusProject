@@ -524,7 +524,7 @@ class PaintWidget(QWidget):
         qp.setBrush(QColor(100,100,100))
         squareLen = (drawLen/boardLen)
         squareWid = (drawWid/boardWid)
-        qp.drawRect((x*squareWid)-5,(y*squareLen)-5,squareWid+10,squareLen+10)
+        qp.drawRect((x*squareWid)-(.1*squareWid),(y*squareLen)-(.1*squareLen),squareWid*1.2,squareLen*1.2)
     def drawKnownPit(self,x,y):
         qp = QPainter(self)
         qp.setPen(QPen(QColor(240,240,240), 3))
