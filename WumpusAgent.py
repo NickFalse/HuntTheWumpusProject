@@ -1,3 +1,8 @@
+#Faith Meyer, Lucius Latham, Nicholas True, and Thomas Dolan
+#WumpusAgent.py
+#2/17/21
+#Project 1
+#This file keeps track of all of the movements that can be made for the agent, wumpus, etc
 from MemoryMap import *
 class WumpusAgent:
     def __init__(self):

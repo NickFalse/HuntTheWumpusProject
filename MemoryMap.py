@@ -1,3 +1,8 @@
+#Faith Meyer, Lucius Latham, Nicholas True, and Thomas Dolan
+#MemoryMap.py
+#2/17/21
+#Project 1
+#This file keeps track of all of the data of the map and keeps track of the squares for that round.
 from enum import Enum
 from typing import Union, Any, List, Optional, cast, Dict
 import random
