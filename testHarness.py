@@ -1,3 +1,9 @@
+#Faith Meyer, Lucius Latham, Nicholas True, and Thomas Dolan
+#testHarness.py
+#2/17/21
+#Project 1
+#This file keeps track of all of our testing and game data
+#It starts and ends the game and shows the stats of your games
 import sys
 import glob
 import os
