@@ -647,34 +647,8 @@ class PaintWidget(QWidget):
     
 
 
-#--------------------------
-#driver routine starts here
-#--------------------------
-
-#get user input for type, arrows, number of wumpi, and how many games to run using these parameters
-#NOTE: games will run for a maximum of 20000 agent moves
-#SECOND NOTE: no user input checks are done - because Alan is lazy
-
-#gametype = int(input("Enter the type of wumpi (1 for non-moving, 2 for moving): "))
-#numwumpi = int(input("Enter the number of wumpi: "))
-#numarrows = int(input("Enter the number of arrows: "))
-#numgames = int(input("Enter the number of games: "))
-
-#variables for stats
-
-
 
 app = QtWidgets.QApplication(sys.argv)
 window = Ui()
 app.exec_()
-#simulation start
-#stat output
-#print("*********************************")
-#print("Stats:")
-#print("Number of games: " + str(numgames))
-#print("Number of wins: " + str(numwins) + " Percentage: " + str(numwins/numgames * 100)[:5])
-#print("Number of deaths: " + str(numpitdeaths + numwumpusdeaths) + " Percentage: " + str((numpitdeaths + numwumpusdeaths)/numgames * 100)[:5])
-#print("Number of pit deaths: " + str(numpitdeaths) + " Percentage: " + str(numpitdeaths/numgames * 100)[:5])
-#print("Number of deaths by wumpus mauling: " + str(numwumpusdeaths) + " Percentage: " + str(numwumpusdeaths/numgames * 100)[:5])
-#print("Number of timeouts: " + str(numtimeouts))
-#print("*********************************")
+

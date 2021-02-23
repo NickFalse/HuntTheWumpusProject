@@ -2,7 +2,7 @@
 #WumpusAgent.py
 #2/17/21
 #Project 1
-#This file keeps track of all of the movements that can be made for the agent, wumpus, etc
+#This file handles the agent and its logic
 from MemoryMap import *
 class WumpusAgent:
     def __init__(self):
@@ -97,7 +97,7 @@ class WumpusAgent:
 
     #go to the safest tile, typically unexplored. will check a larger and larger area for
     #a tile with a low enough risk, risk allowed goes up the more checks are done
-    def goSafest(self,avoidExplored:bool=True,tolerance:float=0.1,checks:int=25):
+    def goSafest(self,avoidExplored:bool=True,tolerance:float=0.1,checks:int=100):
         l = self.memMap.getNearestUnexploredEdges(self.memMap.getTile(self.x,self.y),2,tolerance,checks)
         #print(l)
         l.sort()#puts lowest risk at front
@@ -106,7 +106,7 @@ class WumpusAgent:
             yLen = self.memMap.maxY-self.memMap.minY
             bigLen = xLen if xLen>yLen else yLen
             bigLen = 10 if bigLen<10 else bigLen
-            self.goSafest(True,tolerance+(float(checks)/(bigLen*bigLen)),checks*2)#tune this to reduce how long it gets stuck in weird situations
+            self.goSafest(True,tolerance+(float(checks)/(bigLen*bigLen))*.25,checks*2)#tune this to reduce how long it gets stuck in weird situations
             return
         path = self.memMap.getPathTo(self.memMap.getTile(self.x,self.y),l[0])
         self.followPath(self.memMap.pathToMoves(path))
@@ -133,6 +133,10 @@ class WumpusAgent:
         self.waitSkip = b
 
     def getMove(self, percept):#gets move from agent
+        #SCREAMS NOT HANDLED FOR A GOOD REASON, if we are stationary, we know with pretty much certainty where wumpi are
+        #so we dont need to shoot, when moving wumpi are introduced we blow all our arrows by spawn camping so not much need
+        #considering how tiny the odds of hitting the wumpus are
+
         if "U" in percept:#handle bump and adjust coords
             last = self.moves[-1]#get last move
             if last == "N":#if dir, reverse that coord chance
@@ -156,7 +160,6 @@ class WumpusAgent:
             #this code is disabled on waitSkip being true, this is just to make it better on the ui
             self.shootNorth()
             self.moveCount+=1
-            #print(self.moveCount)
             return self.move
 
         if self.pathing:#if following a path

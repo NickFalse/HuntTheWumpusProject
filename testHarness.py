@@ -50,16 +50,22 @@ elif sys.argv[1]=="-parse":
 
 else:
     directory='./automatedResults/'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     os.chdir(directory)
     #files=glob.glob('*.txt')
     #for filename in files:
     #    os.unlink(filename)
     directory='./Moving/'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     os.chdir(directory)
     files=glob.glob('*.txt')
     for filename in files:
         os.unlink(filename)
     directory='../Still/'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     os.chdir(directory)
     files=glob.glob('*.txt')
     for filename in files:

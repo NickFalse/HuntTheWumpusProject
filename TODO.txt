@@ -1,8 +1,3 @@
-Comments-Faith/Nick
-Headers-Faith
 Scream handle-
-Input errors-
-walls drawn poorly-Nick
 reduce draw time -lucy
 Make sure dev modes are off when submitting
-dont do 20k wait on ui
